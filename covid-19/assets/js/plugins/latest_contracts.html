@@ -1,0 +1,53 @@
+{% set active_page = "latest_contracts" %}
+{% extends "index.html" %}
+{% block css_content %}
+{% endblock %}
+{% block header %}
+{% include "topbar.html" %}
+{% endblock %}
+{% block content %}
+<div class="row mt-3">
+  <div class="col-xl">
+    <h6 class="text-light text-uppercase ls-1 mb-1">Lista</h6>
+    <h5 class="h3 mb-0">Últimos Contratos</h5>
+    {% if contracts|length < 1 %}
+    <p>No hay contratos cargados.</p>
+    {% else %}
+    <table class="table table-striped">
+      <thead class="">
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">ID del contrato</th>
+          <th scope="col">País</th>
+          <th scope="col">Fecha de firma</th>
+          <th scope="col">Fecha de creación</th>
+          <th scope="col">Monto Total</th>
+          <th scope="col"># Total Ítems</th>
+          <th scope="col"># Ítems Clasificados</th>
+          <th scope="col"># Ítems sin clasificar</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for contract in contracts %}
+        <tr>
+          <th scope="row"">{{ contract.id }}</th>
+          <td>{{ contract.contract_id }}</td>
+          <td>{{ contract.country.name }}</td>
+          <td>{{ contract.signing_date }}</td>
+          <td>{{ contract.created_on }}</td>
+          <td>{{ contract.total_amount() }}</td>
+          <td>{{ contract.items | length}}</td>
+          <td>{{ contract.items | length - contract.items_not_classified() | length}}</td>
+          <td>{{ contract.items_not_classified() | length }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block footer %}
+{% endblock %}
+{% block more_scripts %}
+{% endblock %}
