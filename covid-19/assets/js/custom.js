@@ -11,8 +11,11 @@ function getDateOfISOWeek(w, y) {
 
 var countriesChartOptions = new Object();
 var casesChartOptions = new Object();
+var globalTrendOptions = new Object();
+var globalCasesChartOptions = new Object();
 var myCountriesChart = new Object();
 var myCasesChart = new Object();
+var googleMobilityIndex = false;
 var selectedCountries = [];
 var colorMap = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a',
   '#d62728', '#ff9896', '#9467bd', '#c5b0d5', '#8c564b', '#c49c94', '#e377c2',
@@ -26,33 +29,41 @@ var colorMap = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a'
 
 function addGoogleMobilityData(countries) {
   removeGoogleMobilityData();
-  for( var i = 0; i < selectedCountries.length; i++){
-    countryName = selectedCountries[i];
-    countries[countryName].transit.lineStyle = {'color': colorMap[2*i+1]};
-    countries[countryName].transit.itemStyle = {'color': colorMap[2*i+1]};
-    countriesChartOptions.series.push(countries[countryName].transit);
-  };
-  myCountriesChart.setOption(countriesChartOptions, true);
+  if (selectedCountries.length > 0) {
+    for(var i = 0; i < selectedCountries.length; i++){
+      countryName = selectedCountries[i];
+      countries[countryName].transit.lineStyle = {'color': colorMap[2*i+1]};
+      countries[countryName].transit.itemStyle = {'color': colorMap[2*i+1]};
+      countriesChartOptions.series.push(countries[countryName].transit);
+    };
+    myCountriesChart.setOption(countriesChartOptions, true);
+  } else {
+    globalTrendOptions.series.push(global_trends['Global'].transit);
+    myCountriesChart.setOption(globalTrendOptions, true);
+  }
 }
 function removeGoogleMobilityData() {
-  indexesToRemove = []
-  for( var i = 0; i < countriesChartOptions.series.length; i++){
-    if ( countriesChartOptions.series[i].name.includes("(Google Mobility Index)")) {
+  indexesToRemove = [];
+  optionsToEdit = countriesChartOptions;
+  if(countriesChartOptions.series.length == 0) {
+    optionsToEdit = globalTrendOptions;
+  }
+  for( var i = 0; i < optionsToEdit.series.length; i++){
+    if (optionsToEdit.series[i].name.includes("(Google Mobility Index)")) {
       indexesToRemove.push(i);
     }
   };
-  for ( var j = indexesToRemove.length-1 ; j >= 0 ; j--) {
-      countriesChartOptions.series.splice(indexesToRemove[j], 1);
+  for (var j = indexesToRemove.length-1 ; j >= 0 ; j--) {
+      optionsToEdit.series.splice(indexesToRemove[j], 1);
   };
-  myCountriesChart.setOption(countriesChartOptions, true);
+  myCountriesChart.setOption(optionsToEdit, true);
 }
 
 function initControllers(countries, countriesDict, selectClass, google_mobility_index_check) {
-  var googleMobilityIndex = true;
-  $(google_mobility_index_check).find('input').data( "checked", true );
-  //
+  $(google_mobility_index_check).find('input').data( "checked", false );
   $(google_mobility_index_check).click(function() {
 		var check_box = $(this).find('input');
+
     var checked = $( check_box ).data( "checked" );
     if (checked) {
     	$( check_box ).data( "checked", false );
@@ -107,7 +118,7 @@ function initControllers(countries, countriesDict, selectClass, google_mobility_
     debounce: 0,
 
     // custom placeholder text
-    placeholder: 'Choose countries',
+    placeholder: 'Type in countries names',
 
     // enable sortable
     // requires jQuery UI
@@ -127,6 +138,7 @@ function initControllers(countries, countriesDict, selectClass, google_mobility_
   $(selectClass).on('tokenize:tokens:added', function(e, value, text){
 
     index = countriesChartOptions.series.length;
+
     if (!googleMobilityIndex) {
       index = index * 2;
     }
@@ -141,9 +153,9 @@ function initControllers(countries, countriesDict, selectClass, google_mobility_
     countries[value].cases_series.itemStyle = {'color': colorMap[index]};
 
     countriesChartOptions.series.push(countries[value].series);
-    // if (googleMobilityIndex) {
-    countriesChartOptions.series.push(countries[value].transit);
-    // }
+    if (googleMobilityIndex) {
+      countriesChartOptions.series.push(countries[value].transit);
+    }
 
     myCountriesChart.setOption(countriesChartOptions);
 
@@ -153,20 +165,28 @@ function initControllers(countries, countriesDict, selectClass, google_mobility_
 
   $(selectClass).on('tokenize:tokens:remove', function(e, value){
     for( var i = 0; i < countriesChartOptions.series.length; i++){
-      if ( countriesChartOptions.series[i].name === value) {
+      if ( countriesChartOptions.series[i].iso_code === value) {
         countriesChartOptions.series.splice(i, 1);
     }};
     for( var i = 0; i < countriesChartOptions.series.length; i++){
-      if ( countriesChartOptions.series[i].name === (value.concat(" (Google Mobility Index)"))) {
+      if ( countriesChartOptions.series[i].iso_code ===  value) {
         countriesChartOptions.series.splice(i, 1);
     }};
-    myCountriesChart.setOption(countriesChartOptions, true);
+    if(countriesChartOptions.series.length > 0) {
+      myCountriesChart.setOption(countriesChartOptions, true);
+    } else {
+      myCountriesChart.setOption(globalTrendOptions, true);
+    }
 
     for( var i = 0; i < casesChartOptions.series.length; i++){
-      if ( casesChartOptions.series[i].name === value) {
+      if ( casesChartOptions.series[i].iso_code === value) {
         casesChartOptions.series.splice(i, 1);
     }};
-    myCasesChart.setOption(casesChartOptions, true);
+    if(casesChartOptions.series.length > 0) {
+      myCasesChart.setOption(casesChartOptions, true);
+    } else {
+      myCasesChart.setOption(globalCasesChartOptions, true);
+    }
     const index = selectedCountries.indexOf(value);
     if (index > -1) {
       selectedCountries.splice(index, 1);
@@ -181,9 +201,12 @@ function initCountryCharts(countries, countriesDict, containerID) {
   myCountriesChart = echarts.init(document.getElementById(containerID));
   series = [];
   legend = [];
+
   countryNames.forEach(function (country){
-    legend.push(countriesDict[0][country]);
-    legend.push(countriesDict[0][country].concat(' (Google Mobility Index)'));
+    if (countriesDict[0][country]) {
+      legend.push(countriesDict[0][country]);
+      legend.push(countriesDict[0][country].concat(' (Google Mobility Index)'));
+    }
   })
 
   index = 0
@@ -194,47 +217,88 @@ function initCountryCharts(countries, countriesDict, containerID) {
     }
     return array;
   }
-
   countryNames.forEach(function (e) {
-    countries[e]['series'] =
-      {
-        name: countriesDict[0][e],
-        type:'line',
-        smooth: true,
-        data: getValues(countries[e],'senti_bert_std_trend', "No Google Mobility Index Data"),
-        lineStyle: {},
-        markLine: {
-          silent: false, // ignore mouse events
-          symbol: ['none', 'none'],
-          label: {
-            position: 'insideStartBottom',
-            show: true,
-            formatter: function (params) {
-              str = (params.dataIndex == 0)? e+": pre-COVID-19 sentiments":
-                    (params.dataIndex == 1)? e+": lowest sentiment drop":"";
-              return str
-            }
-          },
-          data : [
-            {xAxis: countries[e].drop_senti_bert[0]},
-            {xAxis: countries[e].min_senti_bert_std[0]}
-          ]
+    if(countriesDict[0][e]) {
+      countries[e]['series'] =
+        {
+          name: countriesDict[0][e],
+          iso_code: e,
+          type:'line',
+          smooth: true,
+          data: getValues(countries[e],'senti_bert_std_trend', "No Google Mobility Index Data"),
+          lineStyle: {},
+          markLine: {
+            silent: false, // ignore mouse events
+            symbol: ['none', 'none'],
+            label: {
+              position: 'insideStartBottom',
+              show: true,
+              formatter: function (params) {
+                //str = (params.dataIndex == 0)? e+": pre-COVID-19 sentiments":"";
+                str = "";
+                //(params.dataIndex == 1)? e+": lowest sentiment drop":"";
+                return str
+              }
+            },
+            data : [
+              {xAxis: countries[e].drop_senti_bert[0]}
+              //{xAxis: countries[e].min_senti_bert_std[0]}
+            ]
+          }
+        }
+      countries[e]['transit'] =
+        {
+          name: countriesDict[0][e].concat(' (Google Mobility Index)'),
+          iso_code: e,
+          type:'line',
+          data: getValues(countries[e],'transit', "Google Mobility Index Data"),
+          smooth: true,
+          yAxisIndex: 1,
+          lineStyle: {}
         }
       }
-    countries[e]['transit'] =
-      {
-        name: countriesDict[0][e].concat(' (Google Mobility Index)'),
-        type:'line',
-        data: getValues(countries[e],'transit', "Google Mobility Index Data"),
-        smooth: true,
-        yAxisIndex: 1,
-        lineStyle: {}
-      }
   });
+  global_trends['Global']['series'] = {
+      name: 'Worldwide',
+      iso_code: 'GLO',
+      type:'line',
+      smooth: true,
+      data: getValues(global_trends['Global'],'senti_bert_std_trend', "No Google Mobility Index Data"),
+      lineStyle: {},
+      markLine: {
+        silent: false, // ignore mouse events
+        symbol: ['none', 'none'],
+        label: {
+          position: 'insideStartBottom',
+          show: true,
+          formatter: function (params) {
+            //str = (params.dataIndex == 0)? e+": pre-COVID-19 sentiments":"";
+            str = "";
+            //(params.dataIndex == 1)? e+": lowest sentiment drop":"";
+            return str
+          }
+        },
+        data : [
+          {xAxis: global_trends['Global'].drop_senti_bert[0]}
+          //{xAxis: countries[e].min_senti_bert_std[0]}
+        ]
+      }
+    };
+  global_trends['Global']['transit'] = {
+      name: 'Worldwide (Google Mobility Index)',
+      iso_code: 'GLO',
+      type:'line',
+      data: getValues(global_trends['Global'], 'transit', "Google Mobility Index Data"),
+      smooth: true,
+      yAxisIndex: 1,
+      lineStyle: {}
+    };
+
   countriesChartOptions =
   {
     title: {
-        text: 'Standarized Sentiment Index'
+        text: 'Standarized Sentiment Index',
+        textVerticalAlign: 'top'
     },
     tooltip: {
         trigger: 'axis',
@@ -253,12 +317,14 @@ function initCountryCharts(countries, countriesDict, containerID) {
         }
     },
     legend: {
+        padding: [30, 0, 0, 0],
         data: legend
     },
     grid: {
-        left: '3%',
-        right: '4%',
+        left: '5%',
+        right: '5%',
         bottom: '3%',
+        top: 50,
         containLabel: true
     },
     toolbox: {
@@ -273,7 +339,7 @@ function initCountryCharts(countries, countriesDict, containerID) {
     },
     yAxis: [{
         type: 'value',
-        name: 'standarized value',
+        name: 'Standarized Value',
         nameRotate: '90',
         nameLocation: 'center',
         nameGap: '40'
@@ -288,28 +354,11 @@ function initCountryCharts(countries, countriesDict, containerID) {
        nameGap: '50'
     }],
     series: series,
-    // visualMap: {
-    //     type: 'piecewise',
-    //     categories: ["Google Mobility Index Data"],
-    //     dimension: 2,
-    //     calculable: false,
-    //     hoverLink: false,
-    //     orient: 'horizontal',
-    //     top: 0,
-    //     left: 'right',
-    //     inRange: {
-    //         color: ['#c23531','#2f4554', '#61a0a8'],
-    //         // opacity: ,
-    //         // lineStro
-    //         lineStyle: {color: 'red'},
-    //         symbol: 'rect'
-    //     },
-    //     // outOfRange: {
-    //     //     color: ['#ddd']
-    //     // },
-    // },
   };
-  myCountriesChart.setOption(countriesChartOptions);
+  Object.assign(globalTrendOptions, countriesChartOptions);
+  globalTrendOptions.series = [global_trends['Global']['series']];
+  globalTrendOptions.legend.data = ['Worldwide'];
+  myCountriesChart.setOption(globalTrendOptions);
 }
 
 
@@ -320,23 +369,39 @@ function initCasesCharts(countries, countriesDict, containerID) {
   series = [];
   legend = [];
   countryNames.forEach(function (country){
-    legend.push(country);
+    if (countriesDict[0][country]) {
+      legend.push(country);
+    }
   });
 
   countryNames.forEach(function (e) {
-    countries[e]['cases_series'] =
-      {
-        name: countriesDict[0][e],
-        type:'line',
-        smooth: true,
-        data: countries[e].confirmed,
-        lineStyle: {}
+    if (countriesDict[0][e]) {
+      countries[e]['cases_series'] =
+        {
+          name: countriesDict[0][e],
+          iso_code: e,
+          type:'line',
+          smooth: true,
+          data: countries[e].confirmed,
+          lineStyle: {}
+        }
       }
   });
+
+  global_trends['Global']['cases_series'] =
+    {
+      name: 'Worldwide',
+      iso_code: 'GLO',
+      type:'line',
+      smooth: true,
+      data: global_trends['Global'],
+      lineStyle: {}
+    };
   casesChartOptions =
   {
     title: {
-        text: 'Number of COVID-19 Cases'
+        text: 'New reported COVID-19 Cases',
+        itemGap: 40
     },
     tooltip: {
         trigger: 'axis',
@@ -351,8 +416,8 @@ function initCasesCharts(countries, countriesDict, containerID) {
         data: legend
     },
     grid: {
-        left: '3%',
-        right: '4%',
+        left: '5%',
+        right: '5%',
         bottom: '3%',
         containLabel: true
     },
@@ -368,12 +433,18 @@ function initCasesCharts(countries, countriesDict, containerID) {
     },
     yAxis: [{
         type: 'value',
-        name: 'number of cases',
+        name: 'New Reported Cases',
         nameRotate: '90',
         nameLocation: 'center',
-        nameGap: '40'
+        nameGap: '50'
     }],
     series: series
   };
-  myCasesChart.setOption(casesChartOptions);
+
+  globalCasesChartOptions
+  Object.assign(globalCasesChartOptions, casesChartOptions);
+  globalCasesChartOptions.series = [global_trends['Global']['series']];
+  globalCasesChartOptions.legend.data = ['Worldwide'];
+  myCasesChart.setOption(globalCasesChartOptions);
+
 }

@@ -1,7 +1,5 @@
 $.getJSON('file:///Users/mwill88/Projects/sentimental-analysis/covid-19-sentimental/data/GlobalSentiment_Data.json', function( data ) {
-  console.log('hola');
   countries = new Set(Object.keys(data));
-  console.log(countries);
 });
 
 // Assign handlers immediately after making the request,
