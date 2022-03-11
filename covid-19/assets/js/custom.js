@@ -16,6 +16,7 @@ var globalCasesChartOptions = new Object();
 var myCountriesChart = new Object();
 var myCasesChart = new Object();
 var googleMobilityIndex = false;
+var countriesLegend = [];
 var selectedCountries = [];
 var colorMap = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a',
   '#d62728', '#ff9896', '#9467bd', '#c5b0d5', '#8c564b', '#c49c94', '#e377c2',
@@ -357,7 +358,7 @@ function initCountryCharts(countries, countriesDict, containerID) {
   };
   Object.assign(globalTrendOptions, countriesChartOptions);
   globalTrendOptions.series = [global_trends['Global']['series']];
-  globalTrendOptions.legend.data = ['Worldwide'];
+  globalTrendOptions.legend.data.push('Worldwide');
   myCountriesChart.setOption(globalTrendOptions);
 }
 
@@ -367,10 +368,9 @@ function initCasesCharts(countries, countriesDict, containerID) {
 
   myCasesChart = echarts.init(document.getElementById(containerID));
   series = [];
-  legend = [];
   countryNames.forEach(function (country){
     if (countriesDict[0][country]) {
-      legend.push(country);
+      countriesLegend.push(country);
     }
   });
 
@@ -388,15 +388,14 @@ function initCasesCharts(countries, countriesDict, containerID) {
       }
   });
 
-  global_trends['Global']['cases_series'] =
-    {
+  global_trends['Global']['cases_series'] = {
       name: 'Worldwide',
       iso_code: 'GLO',
       type:'line',
       smooth: true,
-      data: global_trends['Global'],
+      data: global_trends['Global'].confirmed,
       lineStyle: {}
-    };
+  };
   casesChartOptions =
   {
     title: {
@@ -441,10 +440,9 @@ function initCasesCharts(countries, countriesDict, containerID) {
     series: series
   };
 
-  globalCasesChartOptions
   Object.assign(globalCasesChartOptions, casesChartOptions);
-  globalCasesChartOptions.series = [global_trends['Global']['series']];
-  globalCasesChartOptions.legend.data = ['Worldwide'];
+  globalCasesChartOptions.series = [global_trends['Global']['cases_series']];
+  globalCasesChartOptions.legend.data.push('Worldwide');
   myCasesChart.setOption(globalCasesChartOptions);
 
 }
